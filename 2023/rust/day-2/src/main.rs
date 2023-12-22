@@ -12,9 +12,9 @@ fn main() {
 #[derive(Debug, EnumString)]
 #[strum(serialize_all = "lowercase")]
 enum Color {
-    GREEN,
-    RED,
-    BLUE
+    Green,
+    Red,
+    Blue
 }
 
 #[derive(Debug)]
@@ -29,48 +29,65 @@ struct Game {
     reveal_cube_counts: Vec<Vec<CubeCount>>
 }
 
-fn parse_game_id(game_str: &str) -> u32 {
-    game_str[5..].parse().unwrap()
+const GAME_ID_START_INDEX: usize = 5;
+
+fn parse_game_id(game_str: &str) -> Result<u32, String> {
+    game_str[GAME_ID_START_INDEX..].parse()
+        .map_err(|_| format!("Invalid game id: {}", &game_str[GAME_ID_START_INDEX..]))
 }
 
-fn parse_cube_count(cube_count_str: &str) -> CubeCount {
-    let cube_count_and_color: Vec<&str> = cube_count_str.split(" ")
-        .collect();
-    let cube_count: u32 = cube_count_and_color[0].parse().unwrap();
-    let color: Color = cube_count_and_color[1].parse().unwrap();
-    CubeCount {
+fn parse_cube_count(cube_count_str: &str) -> Result<CubeCount, String> {
+    let mut cube_count_and_color = cube_count_str.split(" ");
+    let cube_count_str: &str = cube_count_and_color.next().ok_or("Cube count should be present")?;
+    let color_str: &str = cube_count_and_color.next().ok_or("Cube color should be present")?;
+    
+    let cube_count: u32 = cube_count_str.parse()
+        .map_err(|_| format!("Invalid number for cube count: {}",  {cube_count_str}))?;
+    
+    let color: Color = color_str.parse()
+        .map_err(|_| format!("Invalid color value: {}",  {color_str}))?;
+
+    Ok(CubeCount {
         count: cube_count,
         color
-    }
+    })
 }
 
-fn line_to_game(line: &str) -> Game {
-    let game_and_reveals_str: Vec<&str> = line.split(": ")
-        .collect();
-    let game_id = parse_game_id(game_and_reveals_str[0]);
-
-    let reveal_strs: Vec<&str> =  game_and_reveals_str[1]
+fn parse_reveals(reveals_str: &str) -> Result<Vec<Vec<CubeCount>>, String> {
+    let reveal_strs: Vec<&str> =  reveals_str
         .split("; ")
         .collect();
 
-    let reveal_cube_counts: Vec<Vec<CubeCount>> = reveal_strs.into_iter()
+    reveal_strs.into_iter()
         .map(|reveal| reveal.split(", ")
             .map(|cube_count_str| parse_cube_count(cube_count_str))
             .collect()
         )
-        .collect();
-
-    Game {
-        id: game_id,
-        reveal_cube_counts
-    }
+        .collect()
 }
 
-fn read_games(filename: &str) {
-    let file = File::open(filename).expect("no such file");
-    let buf = BufReader::new(file);
-    let result: Vec<Game> = buf.lines()
-        .map(|l| line_to_game(&l.expect("Could not parse line")))
+fn line_to_game(line: &str) -> Result<Game, String> {
+    let game_and_reveals_str: Vec<&str> = line.split(": ")
         .collect();
-    println!("{:?}", result);
+    let game_id = parse_game_id(game_and_reveals_str[0])?;
+
+    let reveal_cube_counts = parse_reveals(game_and_reveals_str[1])?;
+
+    Ok(Game {
+        id: game_id,
+        reveal_cube_counts
+    })
+}
+
+fn read_games(filename: &str) -> Result<Vec<Game>, String> {
+    let file = File::open(filename)
+        .map_err(|e| format!("Failed to open file '{}': {}", filename, e))?;
+    let buf = BufReader::new(file);
+    buf.lines()
+        .enumerate()
+        .map(|(line_number, line)| 
+            line.map_err(|e| format!("Error reading line {}: {}", line_number, e))
+                .and_then(|l| line_to_game(&l).map_err(|e| format!("Error in line {}: {}", line_number, e)))
+        )
+        .collect()
 }
