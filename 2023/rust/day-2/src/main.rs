@@ -6,7 +6,7 @@ use std::{
 use strum::IntoEnumIterator;
 use strum_macros::{EnumString, EnumIter};
 
-#[derive(Debug, EnumString, EnumIter, PartialEq, Eq, Hash)]
+#[derive(EnumString, EnumIter, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "lowercase")]
 enum Color {
     Green,
@@ -14,37 +14,35 @@ enum Color {
     Blue
 }
 
-#[derive(Debug)]
 struct CubeCount {
     count: u32,
     color: Color
 }
 
-#[derive(Debug)]
 struct Game {
     id: u32,
     reveal_cube_counts: Vec<HashMap<Color, u32>>
 }
 
 fn main() {
-    match read_games("day-2-input.txt") {
-        Ok(games) => {
-            let max_cube_counts_for_colors: HashMap<Color, u32> = HashMap::from([
-                (Color::Red, 12),
-                (Color::Green, 13),
-                (Color::Blue, 14)
-            ]);
-            let sum_of_of_possible_game_ids = sum_of_of_possible_game_ids(&games, &max_cube_counts_for_colors);
-            println!("{}", sum_of_of_possible_game_ids);
+    let games = match read_games("day-2-input.txt") {
+        Ok(games) => games,
+        Err(err_msg) => {
+            println!("{}", err_msg);
+            return; 
         }
-        Err(err_msg) =>
-            println!("{}", err_msg)
-    }
-    
+    };
+    let max_cube_counts_for_colors: HashMap<Color, u32> = HashMap::from([
+        (Color::Red, 12),
+        (Color::Green, 13),
+        (Color::Blue, 14)
+    ]);
+    let sum_of_of_possible_game_ids = sum_of_possible_game_ids(&games, &max_cube_counts_for_colors);
+    println!("{}", sum_of_of_possible_game_ids);
 }
 
-fn sum_of_of_possible_game_ids(games: &Vec<Game>, max_cube_counts_for_colors: &HashMap<Color, u32>) -> u32 {
-    games.into_iter()
+fn sum_of_possible_game_ids(games: &Vec<Game>, max_cube_counts_for_colors: &HashMap<Color, u32>) -> u32 {
+    games.iter()
         .filter(|game| is_game_possible_with_cubes(game, max_cube_counts_for_colors))
         .map(|game| game.id)
         .sum()
