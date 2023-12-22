@@ -1,15 +1,12 @@
 use std::{
     fs::File,
-    io::{prelude::*, BufReader}
+    io::{prelude::*, BufReader}, collections::HashMap
 };
 
-use strum_macros::EnumString;
+use strum::IntoEnumIterator;
+use strum_macros::{EnumString, EnumIter};
 
-fn main() {
-    read_games("day-2-input.txt");
-}
-
-#[derive(Debug, EnumString)]
+#[derive(Debug, EnumString, EnumIter, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "lowercase")]
 enum Color {
     Green,
@@ -26,7 +23,47 @@ struct CubeCount {
 #[derive(Debug)]
 struct Game {
     id: u32,
-    reveal_cube_counts: Vec<Vec<CubeCount>>
+    reveal_cube_counts: Vec<HashMap<Color, u32>>
+}
+
+fn main() {
+    match read_games("day-2-input.txt") {
+        Ok(games) => {
+            let max_cube_counts_for_colors: HashMap<Color, u32> = HashMap::from([
+                (Color::Red, 12),
+                (Color::Green, 13),
+                (Color::Blue, 14)
+            ]);
+            let sum_of_of_possible_game_ids = sum_of_of_possible_game_ids(&games, &max_cube_counts_for_colors);
+            println!("{}", sum_of_of_possible_game_ids);
+        }
+        Err(err_msg) =>
+            println!("{}", err_msg)
+    }
+    
+}
+
+fn sum_of_of_possible_game_ids(games: &Vec<Game>, max_cube_counts_for_colors: &HashMap<Color, u32>) -> u32 {
+    games.into_iter()
+        .filter(|game| is_game_possible_with_cubes(game, max_cube_counts_for_colors))
+        .map(|game| game.id)
+        .sum()
+}
+
+fn is_game_possible_with_cubes(
+    game: &Game,
+    max_cube_counts_for_colors: &HashMap<Color, u32>
+) -> bool {
+    Color::iter().all(|color| -> bool {
+        let max_cube_count_for_color = max_cube_count_for_color(&game.reveal_cube_counts, &color);
+        max_cube_count_for_color <= max_cube_counts_for_colors[&color]
+    })
+}
+
+fn max_cube_count_for_color(all_cube_counts: &Vec<HashMap<Color, u32>>, color: &Color) -> u32 {
+    *all_cube_counts.into_iter()
+        .map(|cube_counts| cube_counts.get(color).unwrap())
+        .max().unwrap()
 }
 
 const GAME_ID_START_INDEX: usize = 5;
@@ -53,15 +90,34 @@ fn parse_cube_count(cube_count_str: &str) -> Result<CubeCount, String> {
     })
 }
 
-fn parse_reveals(reveals_str: &str) -> Result<Vec<Vec<CubeCount>>, String> {
+fn sum_cube_counts(cube_counts: Vec<CubeCount>) -> HashMap<Color, u32> {
+    let mut reveal_cube_count_for_color: HashMap<Color, u32> = Color::iter()
+    .map(|color| (color, 0))
+    .collect();
+    
+    cube_counts.into_iter()
+        .for_each(|reveal_cube_count|
+            *reveal_cube_count_for_color.get_mut(&reveal_cube_count.color).unwrap() += reveal_cube_count.count
+        );
+    
+    reveal_cube_count_for_color
+}
+
+fn parse_cube_counts_for_reveal(reveal: &str) -> Result<Vec<CubeCount>, String> {
+    reveal.split(", ")
+        .map(|cube_count_str| parse_cube_count(cube_count_str))
+        .collect()
+}
+
+fn parse_reveals(reveals_str: &str) -> Result<Vec<HashMap<Color, u32>>, String> {
     let reveal_strs: Vec<&str> =  reveals_str
         .split("; ")
         .collect();
 
     reveal_strs.into_iter()
-        .map(|reveal| reveal.split(", ")
-            .map(|cube_count_str| parse_cube_count(cube_count_str))
-            .collect()
+        .map(|reveal| 
+            parse_cube_counts_for_reveal(reveal)
+                .map(|cube_counts| sum_cube_counts(cube_counts))
         )
         .collect()
 }
@@ -91,3 +147,4 @@ fn read_games(filename: &str) -> Result<Vec<Game>, String> {
         )
         .collect()
 }
+
