@@ -25,6 +25,10 @@ struct Game {
 }
 
 fn main() {
+    extension();
+}
+
+fn base() {
     let games = match read_games("day-2-input.txt") {
         Ok(games) => games,
         Err(err_msg) => {
@@ -39,6 +43,26 @@ fn main() {
     ]);
     let sum_of_of_possible_game_ids = sum_of_possible_game_ids(&games, &max_cube_counts_for_colors);
     println!("{}", sum_of_of_possible_game_ids);
+}
+
+fn extension() {
+    let games = match read_games("day-2-input.txt") {
+        Ok(games) => games,
+        Err(err_msg) => {
+            println!("{}", err_msg);
+            return; 
+        }
+    };
+    let sum_of_minimum_powers: u32 = games.iter()
+        .map(|game| minimum_power_for_game(game))
+        .sum();
+    println!("{}", sum_of_minimum_powers);
+}
+
+fn minimum_power_for_game(game: &Game) -> u32 {
+    Color::iter()
+        .map(|color| max_cube_count_for_color(&game.reveal_cube_counts, &color))
+        .fold(1, |acc, max_cube_count_for_color| acc * max_cube_count_for_color)
 }
 
 fn sum_of_possible_game_ids(games: &Vec<Game>, max_cube_counts_for_colors: &HashMap<Color, u32>) -> u32 {
