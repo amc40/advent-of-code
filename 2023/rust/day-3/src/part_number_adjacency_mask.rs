@@ -11,23 +11,19 @@ pub fn get_part_number_adjacency_mask(lines: &Vec<String>) -> Vec<Vec<bool>> {
 
     let mut bitmask = vec![vec![false; line_length]; n_lines];
 
-    lines.into_iter()
-        .enumerate()
-        .for_each(|(line_number, line)| {
-           line.chars()
-                .enumerate()
-                .for_each(|(char_number, character)| {
-                    if is_symbol(character) {
-                        update_adjacency_matrix_for_symbol_at_location(
-                            &mut bitmask,
-                            n_lines,
-                            line_length,
-                            line_number,
-                            char_number
-                        )
-                    }
-                }) 
-        });
+    for (line_number, line) in lines.iter().enumerate() {
+        for (char_number, character) in line.chars().enumerate() {
+            if is_symbol(character) {
+                update_adjacency_matrix_for_symbol_at_location(
+                    &mut bitmask,
+                    n_lines,
+                    line_length,
+                    line_number,
+                    char_number
+                )
+            }
+        }
+    }
     
     bitmask
 }
