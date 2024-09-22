@@ -4,9 +4,9 @@ use itertools::Itertools;
 
 #[derive(Debug)]
 pub struct RangeMapEntry {
-    pub source_start: u32,
-    pub destination_start: u32,
-    pub length: u32,
+    pub source_start: u64,
+    pub destination_start: u64,
+    pub length: u64,
 }
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ pub struct Mapping {
 
 #[derive(Debug)]
 pub struct Input {
-    pub seeds: Vec<u32>,
+    pub seeds: Vec<u64>,
     pub mappings_by_source_name: HashMap<String, Mapping>,
 }
 
@@ -48,7 +48,7 @@ pub fn read_input_from_file(filename: &str) -> Result<Input, String> {
     })
 }
 
-fn read_seeds_from_first_line(line_iterator: &mut Lines<BufReader<File>>) -> Result<Vec<u32>, String> {
+fn read_seeds_from_first_line(line_iterator: &mut Lines<BufReader<File>>) -> Result<Vec<u64>, String> {
     let first_line_result = line_iterator.next()
         .ok_or("There are no lines in the provided: {}")?;
     let first_line = first_line_result
@@ -57,7 +57,7 @@ fn read_seeds_from_first_line(line_iterator: &mut Lines<BufReader<File>>) -> Res
     read_seeds_from_first_line_str(&first_line)
 }
 
-fn read_seeds_from_first_line_str(first_line: &str) -> Result<Vec<u32>, String> {
+fn read_seeds_from_first_line_str(first_line: &str) -> Result<Vec<u64>, String> {
     let (_, seed_str) = first_line.splitn(2, ": ")
         .collect_tuple()
         .ok_or(format!("Could not parse seeds line:\n{}", first_line))?;
@@ -96,8 +96,8 @@ fn read_mapping_entries(line_iterator: &mut Lines<BufReader<File>>) -> Result<Ve
         if numbers_in_line.len() != 3 {
             return Err("Expected exactly 3 numbers in mapping entry".to_owned());
         }
-        let source_range_start = numbers_in_line[0];
-        let dest_range_start = numbers_in_line[1];
+        let source_range_start = numbers_in_line[1];
+        let dest_range_start = numbers_in_line[0];
         let length = numbers_in_line[2];
         mapping_entries.push(RangeMapEntry {
             source_start: source_range_start,
@@ -114,7 +114,7 @@ fn read_mapping_entries(line_iterator: &mut Lines<BufReader<File>>) -> Result<Ve
     Ok(mapping_entries)
 }
 
-fn parse_whitespace_separated_numbers(whitespace_separated_numbers: &str) -> Result<Vec<u32>, String> {
+fn parse_whitespace_separated_numbers(whitespace_separated_numbers: &str) -> Result<Vec<u64>, String> {
     whitespace_separated_numbers.split_whitespace()
         .try_fold(Vec::new(), |mut acc_vec, number_str| {
             let number = number_str.parse()
