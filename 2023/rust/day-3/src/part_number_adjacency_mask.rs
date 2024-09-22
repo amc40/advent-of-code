@@ -5,7 +5,7 @@ pub fn get_part_number_adjacency_mask(lines: &Vec<String>) -> Vec<Vec<bool>> {
 
     if n_lines == 0 {
         return Vec::new();
-    } ;
+    }
 
     let line_length = lines[0].len();
 
